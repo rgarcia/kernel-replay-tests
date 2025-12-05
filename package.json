@@ -1,0 +1,19 @@
+{
+  "name": "kernel-replay-tests",
+  "version": "1.0.0",
+  "description": "Tests for Kernel video replay behavior on browser deletion",
+  "type": "module",
+  "scripts": {
+    "test": "tsx test-replay-behavior.ts"
+  },
+  "dependencies": {
+    "@onkernel/sdk": "^0.21.0",
+    "dotenv": "^16.4.5",
+    "playwright-core": "^1.49.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
