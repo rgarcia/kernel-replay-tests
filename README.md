@@ -38,13 +38,13 @@ pnpm test
 
 All 5 tests passed with **100% replay generation success**:
 
-| Test Name                 | Stop Called | Wait (ms) | Replay Generated |
-| ------------------------- | ----------- | --------- | ---------------- |
-| No stop, immediate delete | No          | 0         | ✅ Yes           |
-| Stop, 0ms wait, delete    | Yes         | 0         | ✅ Yes           |
-| Stop, 250ms wait, delete  | Yes         | 250       | ✅ Yes           |
-| Stop, 500ms wait, delete  | Yes         | 500       | ✅ Yes           |
-| Stop, 1000ms wait, delete | Yes         | 1000      | ✅ Yes           |
+| Test Name                 | Stop Called | Wait (ms) | Replay Generated | File Size |
+| ------------------------- | ----------- | --------- | ---------------- | --------- |
+| No stop, immediate delete | No          | 0         | ✅ Yes           | 27.6 KB   |
+| Stop, 0ms wait, delete    | Yes         | 0         | ✅ Yes           | 30.0 KB   |
+| Stop, 250ms wait, delete  | Yes         | 250       | ✅ Yes           | 27.9 KB   |
+| Stop, 500ms wait, delete  | Yes         | 500       | ✅ Yes           | 27.9 KB   |
+| Stop, 1000ms wait, delete | Yes         | 1000      | ✅ Yes           | 27.1 KB   |
 
 ### Key Findings
 
@@ -55,3 +55,7 @@ All 5 tests passed with **100% replay generation success**:
 **2. Do you need to wait before calling delete after stop?**
 
 - **NO** - Based on these tests, even immediate deletion (0ms wait) after `stop()` successfully generated replays.
+
+**3. Are the replay files valid (non-empty)?**
+
+- **YES** - All replay files downloaded successfully with sizes between 27-30 KB, confirming actual video content is being generated.

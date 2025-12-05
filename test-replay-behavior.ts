@@ -12,6 +12,7 @@ interface TestResult {
   waitMs: number;
   replayFound: boolean;
   replayStatus?: string;
+  replayFileSize?: number;
   error?: string;
 }
 
@@ -115,6 +116,22 @@ async function runTest(
           console.log(`      View URL: ${r.replay_view_url || "N/A"}`);
           if (r.replay_id === replay.replay_id) {
             result.replayStatus = "found";
+
+            // Download replay to verify file size
+            console.log("    Downloading replay to verify file size...");
+            try {
+              const videoData = await kernel.browsers.replays.download(
+                r.replay_id,
+                { id: kernelBrowser.session_id }
+              );
+              const blob = await videoData.blob();
+              result.replayFileSize = blob.size;
+              console.log(`      File size: ${blob.size} bytes (${(blob.size / 1024).toFixed(2)} KB)`);
+            } catch (downloadError: unknown) {
+              const dlErr = downloadError instanceof Error ? downloadError.message : String(downloadError);
+              console.log(`      Download error: ${dlErr}`);
+              result.replayFileSize = 0;
+            }
           }
         }
       } else {
@@ -167,22 +184,25 @@ async function main() {
 
   // Print summary
   console.log("\n");
-  console.log("╔════════════════════════════════════════════════════════════════════════════╗");
-  console.log("║                              TEST RESULTS SUMMARY                          ║");
-  console.log("╠════════════════════════════════════════════════════════════════════════════╣");
-  console.log("║ Test Name                      │ Stop │ Wait(ms) │ Replay │ Status        ║");
-  console.log("╠════════════════════════════════════════════════════════════════════════════╣");
+  console.log("╔══════════════════════════════════════════════════════════════════════════════════════════╗");
+  console.log("║                                   TEST RESULTS SUMMARY                                   ║");
+  console.log("╠══════════════════════════════════════════════════════════════════════════════════════════╣");
+  console.log("║ Test Name                      │ Stop │ Wait(ms) │ Replay │ File Size    │ Status       ║");
+  console.log("╠══════════════════════════════════════════════════════════════════════════════════════════╣");
 
   for (const r of results) {
     const name = r.name.padEnd(30);
     const stop = r.stopCalled ? "Yes " : "No  ";
     const wait = r.waitMs.toString().padStart(8);
     const found = r.replayFound ? "✅" : "❌";
+    const fileSize = r.replayFileSize !== undefined
+      ? (r.replayFileSize > 0 ? `${(r.replayFileSize / 1024).toFixed(1)} KB`.padStart(12) : "0 bytes".padStart(12))
+      : "N/A".padStart(12);
     const status = (r.error || r.replayStatus || "unknown").substring(0, 12).padEnd(12);
-    console.log(`║ ${name} │ ${stop} │ ${wait} │   ${found}   │ ${status} ║`);
+    console.log(`║ ${name} │ ${stop} │ ${wait} │   ${found}   │ ${fileSize} │ ${status} ║`);
   }
 
-  console.log("╚════════════════════════════════════════════════════════════════════════════╝");
+  console.log("╚══════════════════════════════════════════════════════════════════════════════════════════╝");
 
   // Analysis
   console.log("\n");
