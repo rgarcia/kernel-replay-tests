@@ -1,6 +1,10 @@
 import Kernel from "@onkernel/sdk";
 import "dotenv/config";
+import fs from "fs";
+import path from "path";
 import { chromium } from "playwright-core";
+
+const REPLAYS_DIR = "replays";
 
 const kernel = new Kernel();
 
@@ -13,7 +17,12 @@ interface TestResult {
   replayFound: boolean;
   replayStatus?: string;
   replayFileSize?: number;
+  replayFilePath?: string;
   error?: string;
+}
+
+function sanitizeFilename(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
 }
 
 async function sleep(ms: number): Promise<void> {
@@ -117,7 +126,7 @@ async function runTest(
           if (r.replay_id === replay.replay_id) {
             result.replayStatus = "found";
 
-            // Download replay to verify file size
+            // Download replay to verify file size and save locally
             console.log("    Downloading replay to verify file size...");
             try {
               const videoData = await kernel.browsers.replays.download(
@@ -127,6 +136,14 @@ async function runTest(
               const blob = await videoData.blob();
               result.replayFileSize = blob.size;
               console.log(`      File size: ${blob.size} bytes (${(blob.size / 1024).toFixed(2)} KB)`);
+
+              // Save replay to local file
+              const filename = `${sanitizeFilename(name)}-${r.replay_id}.mp4`;
+              const filepath = path.join(REPLAYS_DIR, filename);
+              const buffer = Buffer.from(await blob.arrayBuffer());
+              fs.writeFileSync(filepath, buffer);
+              result.replayFilePath = filepath;
+              console.log(`      Saved to: ${filepath}`);
             } catch (downloadError: unknown) {
               const dlErr = downloadError instanceof Error ? downloadError.message : String(downloadError);
               console.log(`      Download error: ${dlErr}`);
@@ -164,6 +181,12 @@ async function main() {
   console.log("  1. Are replays auto-stopped on browser deletion?");
   console.log("  2. What wait time is needed between stop and delete?");
   console.log("");
+
+  // Create replays directory if it doesn't exist
+  if (!fs.existsSync(REPLAYS_DIR)) {
+    fs.mkdirSync(REPLAYS_DIR, { recursive: true });
+    console.log(`Created ${REPLAYS_DIR}/ directory for downloaded replays`);
+  }
 
   const results: TestResult[] = [];
 
@@ -242,6 +265,16 @@ async function main() {
   console.log("Session IDs for reference:");
   for (const r of results) {
     console.log(`  ${r.name}: ${r.sessionId}`);
+  }
+  console.log("═══════════════════════════════════════════════════════════════════════════");
+
+  console.log("\n═══════════════════════════════════════════════════════════════════════════");
+  console.log("Downloaded replay files:");
+  for (const r of results) {
+    if (r.replayFilePath) {
+      const sizeKB = r.replayFileSize ? `${(r.replayFileSize / 1024).toFixed(1)} KB` : "unknown";
+      console.log(`  ${r.replayFilePath} (${sizeKB})`);
+    }
   }
   console.log("═══════════════════════════════════════════════════════════════════════════");
 }
